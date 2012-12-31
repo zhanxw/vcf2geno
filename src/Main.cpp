@@ -17,6 +17,20 @@
 
 #include "IO.h"
 #include "Regex.h"
+#include "SimpleMatrix.h"
+
+/**
+ * All indices are 0-based
+ */
+void appendGeno(SimpleMatrix* geno, const int peopleIndex, const int genoIndex, int g) {
+  if (geno->nrow() <= peopleIndex) {
+    geno->resize(geno->nrow() + 1, geno->ncol());
+  }
+  if (geno->ncol() <= genoIndex) {
+    geno->resize(geno->nrow(), geno->ncol() + 1);
+  }
+  (*geno)[peopleIndex][genoIndex] = g;
+}
 
 int main(int argc, char** argv){
     time_t currentTime = time(0);
@@ -26,8 +40,7 @@ int main(int argc, char** argv){
     BEGIN_PARAMETER_LIST(pl)
         ADD_PARAMETER_GROUP(pl, "Input/Output")
         ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
-        ADD_STRING_PARAMETER(pl, outVcf, "--outVcf", "output prefix")
-        ADD_STRING_PARAMETER(pl, outPlink, "--make-bed", "output prefix")
+        ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
         ADD_PARAMETER_GROUP(pl, "People Filter")
         ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
         ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
@@ -36,18 +49,6 @@ int main(int argc, char** argv){
         ADD_PARAMETER_GROUP(pl, "Site Filter")
         ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
         ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
-        ADD_PARAMETER_GROUP(pl, "Gene Extractor")
-        ADD_STRING_PARAMETER(pl, geneFile, "--geneFile", "Specify the gene file (refFlat format), so we know gene start and end.")
-        ADD_STRING_PARAMETER(pl, geneName, "--gene", "Specify the gene names to extract")
-        ADD_STRING_PARAMETER(pl, annoType, "--annoType", "Specify the type of annotation to extract")
-        ADD_PARAMETER_GROUP(pl, "Quality Filter")
-        ADD_DOUBLE_PARAMETER(pl, minSiteQual, "--minSiteQual", "Specify minimum site qual")
-        ADD_DOUBLE_PARAMETER(pl, minGQ, "--minGQ", "Specify the minimum genotype quality, otherwise marked as missing genotype")
-        ADD_DOUBLE_PARAMETER(pl, minGD, "--minGD", "Specify the minimum genotype depth, otherwise marked as missing genotype")
-        
-        ADD_PARAMETER_GROUP(pl, "Other Function")        
-        ADD_BOOL_PARAMETER(pl, variantOnly, "--variantOnly", "Only variant sites from the VCF file will be processed.")
-        ADD_STRING_PARAMETER(pl, updateId, "--update-id", "Update VCF sample id using given file (column 1 and 2 are old and new id).")
         END_PARAMETER_LIST(pl)
         ;    
 
@@ -82,130 +83,90 @@ int main(int argc, char** argv){
     }
     vin.excludePeople(FLAG_peopleExcludeID.c_str());
     vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
+
+    // store intemediate results
+    OrderedMap < std::string, int> markerIndex;
+    SimpleMatrix geno; // store genotypes by person
     
     // let's write it out.
     VCFOutputFile* vout = NULL;
-    PlinkOutputFile* pout = NULL;
-    if (FLAG_outVcf.size() > 0) {
-        vout = new VCFOutputFile(FLAG_outVcf.c_str());
-    };
-    if (FLAG_outPlink.size() > 0) {
-        pout = new PlinkOutputFile(FLAG_outPlink.c_str());
-    };
-    if (!vout && !pout) {
-        vout = new VCFOutputFile("temp.vcf");
-    }
 
-    if (FLAG_updateId != "") {
-      int ret = vin.updateId(FLAG_updateId.c_str());
-      fprintf(stdout, "%d samples have updated id.\n", ret);
-    }
+    // if (FLAG_updateId != "") {
+    //   int ret = vin.updateId(FLAG_updateId.c_str());
+    //   fprintf(stdout, "%d samples have updated id.\n", ret);
+    // }
+    FILE* fMap = fopen( (FLAG_outPrefix + ".map").c_str(), "wt");
 
-    // load gene ranges
-    std::map< std::string, std::string> geneRange;
-    if (FLAG_geneName.size() ){
-      if (FLAG_geneFile.size() == 0) {
-        fprintf(stderr, "Have to provide --geneFile to extract by gene.\n");
-        abort();
-      }
-      LineReader lr(FLAG_geneFile);
-      std::vector< std::string > fd;
-      while (lr.readLineBySep(&fd, "\t ")) {
-        if (FLAG_geneName != fd[0]) continue;
-        fd[2] = chopChr(fd[2]); // chop "chr1" to "1"
-        if (geneRange.find(fd[0])  == geneRange.end()) {
-          geneRange[fd[0]] = fd[2] + ":" + fd[4] + "-" + fd[5];
-        } else {
-          geneRange[fd[0]] += "," + fd[2] + ":" + fd[4] + "-" + fd[5];
-        }
-      };
-    }
-    std::string range;
-    for (std::map< std::string, std::string>::iterator it = geneRange.begin();
-         it != geneRange.end();
-         it++) {
-      if (range.size() > 0) {
-        range += ",";
-      }
-      range += it->second;
-    };
-    if (!range.empty()){
-      // fprintf(stdout, "range = %s\n", range.c_str());
-      vin.setRangeList(range.c_str());
-    }
-    Regex regex;
-    if (FLAG_annoType.size()) {
-      regex.readPattern(FLAG_annoType);
-    }
-
-    int lowSiteFreq = 0; // counter of low site qualities
-    int lowGDFreq = 0;
-    int lowGQFreq = 0;
-    // real working park
-    if (vout) vout->writeHeader(vin.getVCFHeader());
-    if (pout) pout->writeHeader(vin.getVCFHeader());
+    std::string markerName;
     int lineNo = 0;
-    int nonVariantSite = 0;
+    // int nonVariantSite = 0;
     while (vin.readRecord()){
         lineNo ++;
         VCFRecord& r = vin.getVCFRecord(); 
         VCFPeople& people = r.getPeople();
         VCFIndividual* indv;
-        if (FLAG_variantOnly) {
-          bool hasVariant = false;
-          int geno;
-          int GTidx = r.getFormatIndex("GT");
-          for (int i = 0; i < people.size() ;i ++) {
-            indv = people[i];
-            geno = indv->justGet(0).getGenotype();
-            if (geno != 0 && geno != MISSING_GENOTYPE)
-              hasVariant = true;
-          }
-          if (!hasVariant) {
-            nonVariantSite++;
-            continue;
-          }
+        // if (FLAG_variantOnly) {
+        //   bool hasVariant = false;
+        //   int geno;
+        //   int GTidx = r.getFormatIndex("GT");
+        //   for (int i = 0; i < people.size() ;i ++) {
+        //     indv = people[i];
+        //     geno = indv->justGet(0).getGenotype();
+        //     if (geno != 0 && geno != MISSING_GENOTYPE)
+        //       hasVariant = true;
+        //   }
+        //   if (!hasVariant) {
+        //     nonVariantSite++;
+        //     continue;
+        //   }
+        // }
+        markerName = r.getID();
+        if (markerName == ".") {
+          markerName = r.getChrom();
+          markerName += ":";
+          markerName += r.getPosStr();
         }
-        if (FLAG_minSiteQual > 0 && r.getQualDouble() < FLAG_minSiteQual) {
-          ++lowSiteFreq;
+        if (markerIndex.find(markerName)){
+          fprintf(stderr, "Duplicated marker name [ %s ]\n", markerName.c_str());
           continue;
         }
-        if (FLAG_annoType.size()) {
-          bool isMissing = false;
-          const char* tag = r.getInfoTag("ANNO", &isMissing).toStr();
-          if (isMissing)
-            continue;
-          // fprintf(stdout, "ANNO = %s", tag);
-          bool match = regex.match(tag);
-          // fprintf(stdout, " %s \t", match ? "match": "noMatch");
-          // fprintf(stdout, " %s \n", exists ? "exists": "missing");          
-          if (!match) {
-            continue;
-          }
-        }
-        if (FLAG_minGD > 0 || FLAG_minGQ > 0) {
-          if (vout) {
-            vout->writeRecordWithFilter(& r, FLAG_minGD, FLAG_minGQ);
-          }
-          if (pout) {
-            pout->writeRecordWithFilter(& r, FLAG_minGD, FLAG_minGQ);
-          }
-        } else {
-          if (vout) vout->writeRecord(& r);
-          if (pout) pout->writeRecord(& r);        
-        }
+        fprintf(fMap, "%s\t%s\t%s\t%s\t%s\n", r.getChrom(), r.getPosStr(), markerName.c_str(), r.getRef(), r.getAlt());
 
+        const int index = markerIndex.size();
+        markerIndex[markerName] = index;
+            
+        int GTidx = r.getFormatIndex("GT");
+        bool missing;
+        for (int i = 0; i < people.size(); ++i) {
+          const VCFValue& v = people[i]->get(GTidx, &missing);
+          if (!missing) {
+            int g = v.getGenotype();
+            appendGeno(&geno, i, index, g);
+          } else {
+            appendGeno(&geno, i, index, -9);
+          }
+        }
     };
-    fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
-    if (FLAG_variantOnly) {
-      fprintf(stdout, "Skipped %d non-variant VCF records\n", nonVariantSite);
+    fclose(fMap);
+    
+    // output geno file
+    FILE* fGeno = fopen ( (FLAG_outPrefix + ".geno").c_str(), "wt");
+    std::vector<std::string> names;
+    vin.getVCFHeader()->getPeopleName(&names);
+    for (int i = 0; i < names.size(); ++i) {
+      fprintf(fGeno, "%s\t%s", names[i].c_str(), names[i].c_str());
+      for (int j = 0; j < geno.ncol(); ++j) {
+        fprintf(fGeno, "\t%d", (int) geno[i][j]);
+      }
+      fprintf(fGeno, "\n");
     }
-    if (lowSiteFreq) {
-      fprintf(stdout, "Skipped %d low sites due to site quality lower than %f\n", lowSiteFreq, FLAG_minSiteQual);
-    };
-    if (vout) delete vout;
-    if (pout) delete pout;
-
+    fclose(fGeno);
+    
+    fprintf(stdout, "Total %d VCF records have converted successfully\n", lineNo);
+    fprintf(stdout, "Total %d people and %d markers are outputted\n", geno.nrow(), geno.ncol());
+    // if (FLAG_variantOnly) {
+    //   fprintf(stdout, "Skipped %d non-variant VCF records\n", nonVariantSite);
+    // }
     
     return 0; 
 };
