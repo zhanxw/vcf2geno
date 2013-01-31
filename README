@@ -1,0 +1,39 @@
+LASER Software
+==============
+
+vcf2laser
+---------
+
+Function:
+Convert VCF files to genotype file and map file.
+
+Usage:
+ vcf2laser --inVcf input.vcf --out prefix
+
+Location:
+executable/vcf2laser ;
+alternatively, under src/, use 'make' to build it from source.
+
+pileup2laser.py
+---------------
+
+Function:
+Convert pileup results to seq file.
+
+Usage:
+ python pileup2laser.py ...
+
+Location:
+script/pileup2laser.py
+
+calculateCoverage.py
+--------------------
+
+Function:
+Calculate coverage statistics (per sample and per marker) from laser file
+
+Usage:
+ python calculateCoverage.py ....
+
+Location:
+script/calculateCoverage.py

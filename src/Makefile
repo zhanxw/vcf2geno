@@ -14,32 +14,16 @@ $(DIR_EXEC_DBG):
 TABIX_INC = third/tabix
 TABIX_LIB = third/tabix/libtabix.a
 
-EIGEN_INC = third/eigen
-EIGEN_LIB =  # Eigen are header files only
-
-PCRE_INC = third/pcre/include
-PCRE_LIB = third/pcre/lib/libpcreposix.a third/pcre/lib/libpcre.a
-
-GSL_INC = third/gsl/include
-GSL_LIB = third/gsl/lib/libgsl.a
-
 BZIP2_INC = third/bzip2
 BZIP2_LIB = third/bzip2/libbz2.a
 
 $(TABIX_INC) $(TABIX_LIB):
 	(cd third; make tabix)
-$(EIGEN_INC) $(EIGEN_LIB):
-	(cd third; make eigen)
-$(PCRE_INC) $(PCRE_LIB):
-	(cd third; make pcre)
-$(GSL_INC) $(GSL_LIB):
-	(cd third; make gsl)
-
 $(BZIP2_INC) $(BZIP2_LIB):
 	(cd third; make bzip2)
 
-THIRD_INC = $(TABIX_INC) $(EIGEN_INC) $(PCRE_INC) $(GSL_INC) $(BZIP2_INC)
-THIRD_LIB = $(TABIX_LIB) $(PCRE_LIB) $(GSL_LIB) $(BZIP2_LIB)
+THIRD_INC = $(TABIX_INC) $(BZIP2_INC)
+THIRD_LIB = $(TABIX_LIB) $(BZIP2_LIB)
 ##################################################
 # Our libs.
 BASE_INC = ./base
@@ -50,10 +34,6 @@ VCF_INC = ./libVcf
 VCF_LIB = ./libVcf/lib-vcf.a
 VCF_LIB_DBG = ./libVcf/lib-dbg-vcf.a
 
-GONCALO_INC = ./libsrc
-GONCALO_LIB = ./libsrc/lib-goncalo.a
-GONCALO_LIB_DBG = ./libsrc/lib-dbg-goncalo.a
-
 $(BASE_LIB):
 	(cd base; make)
 $(BASE_LIB_DBG):
@@ -62,19 +42,15 @@ $(VCF_LIB):
 	(cd libVcf; make)
 $(VCF_LIB_DBG):
 	(cd libVcf; make debug)
-$(GONCALO_LIB):
-	(cd libsrc; make)
-$(GONCALO_LIB_DBG):
-	(cd libsrc; make debug)
 
 ##################################################
 
-INCLUDE = $(THIRD_INC) $(VCF_INC) $(BASE_INC) $(GONCALO_INC)
-LIB = $(VCF_LIB) $(BASE_LIB) $(GONCALO_LIB) $(THIRD_LIB) 
-LIB_DBG = $(VCF_LIB_DBG) $(BASE_LIB_DBG) $(GONCALO_LIB_DBG) $(THIRD_LIB)
+INCLUDE = $(THIRD_INC) $(VCF_INC) $(BASE_INC)
+LIB = $(VCF_LIB) $(BASE_LIB) $(THIRD_LIB) 
+LIB_DBG = $(VCF_LIB_DBG) $(BASE_LIB_DBG) $(THIRD_LIB)
 CXX_INCLUDE = $(addprefix -I, $(INCLUDE)) -I.
-CXX_LIB = $(LIB) -lz -lm -lgsl -lblas
-CXX_LIB_DBG = $(LIB_DBG) -lz -lm -lgsl -lblas
+CXX_LIB = $(LIB) -lz -lm
+CXX_LIB_DBG = $(LIB_DBG) -lz -lm
 
 
 DEFAULT_CXXFLAGS = -D__STDC_LIMIT_MACROS -std=c++0x #-Wall
@@ -137,7 +113,9 @@ $(foreach s, $(UTIL_EXEC), $(eval $(call BUILD_util_dbg, $(s))))
 
 
 clean: 
-	rm -rf *.o *.d $(EXEC) \
+	rm -rf *.o *.d \
+        $(addprefix $(DIR_EXEC)/, $(EXEC)) \
+        $(addprefix $(DIR_EXEC_DBG)/, $(EXEC)) \
         $(addprefix $(DIR_EXEC)/,$(UTIL_EXEC)) \
         $(addprefix $(DIR_EXEC_DBG)/,$(UTIL_EXEC))
 

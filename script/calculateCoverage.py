@@ -31,10 +31,11 @@ def getStat(arr):
 if __name__ == '__main__':
     try:
         import getopt
-	optlist, args = getopt.getopt(sys.argv[1:], 'o:')
+	optlist, args = getopt.getopt(sys.argv[1:], 'o:m:')
 	optlist = dict(optlist)
-        seqFile, mapFile = args
+        seqFile = args[0]
 	outputPrefix = optlist['-o']
+	mapFile = optlist['-m']
     except:
         usage()
 	raise
@@ -75,7 +76,7 @@ if __name__ == '__main__':
     # 		    raise
 
     markerCov = open(outputPrefix + '.cov.marker', 'w')
-    markerCov.write('\t'.join(['chrom', 'markerName', 'cm', 'pos', 'ref']))
+    markerCov.write('\t'.join(['chrom', 'pos', 'markerName', 'ref', 'alt']))
     markerCov.write('\t')
     markerCov.write('\t'.join(['length', 'min', 'q1', 'median', 'mean', 'q3', 'max', 'sd']))
     markerCov.write('\n')

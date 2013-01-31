@@ -8,11 +8,11 @@ except:
     from XiaoweiLib import myopen
 
 def usage():
-    print("%s -b bedFileToExcludeRegion [-i idFile] -m mapaFile -o outputPrefix pileupFiles...." % sys.argv[0] )
+    print("%s [-b bedFileToExcludeRegion] [-i idFile] -m mapaFile -o outputPrefix pileupFiles...." % sys.argv[0] )
     print("bedfile: format:chrom, beg, end, rsNumber")
     print("idFile: pileupNumber, GWAS_ID - optional")
-    print("mapaFile: map file with additional ref and alt column")
-    print("outputPrefix: output .coverage file and .refCount file")
+    # print("mapaFile: map file with additional ref and alt column")
+    # print("outputPrefix: output .coverage file and .refCount file")
 
 # return counts (ref, alt)
 def count(ref, reads):
@@ -69,11 +69,8 @@ if __name__ == '__main__':
         import getopt
 	optlist, args = getopt.getopt(sys.argv[1:], 'b:i:m:o:')
 	optlist = dict(optlist)
-        arg_bedFile = optlist['-b']
-        if '-i' in optlist:
-            arg_idFile = optlist['-i']
-        else:
-            arg_idFile = None
+	arg_bedFile = optlist.get('-b', None)
+	arg_idFile = optlist.get('-i', None)
         arg_mapFile = optlist['-m']
         arg_outPrefix = optlist['-o']
         fns = args
@@ -84,7 +81,10 @@ if __name__ == '__main__':
     
     from XiaoweiLib import BedFile
     bedFile = BedFile()
-    print >> sys.stderr, "Load bed lines and unique regions:", bedFile.open(arg_bedFile, trimChrPrefix = True)
+    if arg_bedFile != None:
+	print >> sys.stderr, "Load bed lines and unique regions:", bedFile.open(arg_bedFile, trimChrPrefix = True)
+    else:
+	print >> sys.stderr, "Skip loading bed file, all loci will be processed."
 #     print bedFile.contain("1", 100) #196341101       196341250
 #     print bedFile.contain("1", 196341101) #196341101       196341250
 #     print bedFile.contain("1", 196341249)
@@ -99,15 +99,15 @@ if __name__ == '__main__':
 #     sys.exit(0)
 
     mapContent = [i.strip().split() for i in open(arg_mapFile).xreadlines()]
-    pos = ['%s:%s' % ( i[0].replace('chr',''), i[3]) for i in mapContent]
-    rsId = [ i[1] for i in mapContent]
+    pos = ['%s:%s' % ( i[0].replace('chr',''), i[1]) for i in mapContent]
+    rsId = [ i[2] for i in mapContent]
     # print >> sys.stderr, "Open bed file", bedFile
     # bedContent = [i.split() for i in open(bedFile).xreadlines()]
     #pos = [ '%s:%s' % (i[0].replace('chr',''), i[2]) for i in bedContent]
     #rsId = [ i[3] for i in bedContent]
     from collections import OrderedDict
     colDict = OrderedDict(zip(pos, rsId))  # pos -> rsId e.g. 1:123->rs99
-    excludePos = [bedFile.contain( i[0].replace('chr',''), i[3]) for i in mapContent]
+    excludePos = [bedFile.contain( i[0].replace('chr',''), i[1]) for i in mapContent]
     excludePos = set([pos[idx] for idx, v in enumerate(excludePos) if v])
     print >> sys.stderr, "Excluding %d on-site markers" % len(excludePos)
 
@@ -118,7 +118,8 @@ if __name__ == '__main__':
     #print >> sys.stderr, "%d refbases loaded" % len(mapRef)
 
     if arg_idFile != None:
-        pileupId = dict([i.strip().split() for i in open(arg_idFile).xreadlines()]) # pileupId -> GWAS_ID
+        idContent = [i.strip().split() for i in open(arg_idFile).xreadlines()] # pileupId -> GWAS_ID
+	pileupId = {i[0]:i[1:] for i in idContent}
         print >> sys.stderr, "%d sample id loaded" % len(pileupId)
 
     # covFile = open(outPrefix + '.coverage', 'w')
@@ -140,6 +141,7 @@ if __name__ == '__main__':
             try:
                 refCount, altCount = count(ref, reads)
             except:
+		print >> sys.stderr, "Cannot parse pileup data, entering debug mode ..."
                 import pdb
                 pdb.set_trace()
             #print 'refCnt = ', refCount, 'altCnt=', altCount
@@ -150,11 +152,19 @@ if __name__ == '__main__':
 
         # outputs
         if arg_idFile != None:
-            gwasId = pileupId[ os.path.basename(fn).split('.')[0] ]
+	    key = os.path.basename(fn).split('.')[0]
+	    if key in pileupId:
+		gwasId = pileupId[key]
+		if len(gwasId) == 2:
+		    seqFile.write('\t'.join(gwasId))
+		elif len(gwasId) == 1:
+		    seqFile.write('\t'.join([gwasId, gwasId]))
+		else:
+		    print >> sys.stderr, "Error: id file does not have correct entry for ", key
+		    seqFile.write('\t'.join([gwasId, gwasId]))
         else:
-            #QgwasId = os.path.basename(fn).split('.')[0]
             gwasId = os.path.basename(fn).replace('.pileup', '')
-        seqFile.write('\t'.join([gwasId, gwasId, '0', '0', '9', '9']))
+	    seqFile.write('\t'.join([gwasId, gwasId]))
 
         for k, v in colDict.iteritems():
             if k in excludePos:
@@ -171,10 +181,10 @@ if __name__ == '__main__':
 
     seqFile.close()
 
-    mapFile  = open(arg_outPrefix + '.map', 'w')
-    for fd in mapContent:
-        chrom, rs, mapDist, pos, ref, alt = fd
-        mapFile.write("%s\t%s\t%s\t%s\t%s\n" % (chrom, rs, mapDist, pos, ref))
+    # mapFile  = open(arg_outPrefix + '.map', 'w')
+    # for fd in mapContent:
+    #     chrom, pos, rs, ref, alt = fd
+    #     mapFile.write("%s\t%s\t%s\t%s\t%s\n" % (chrom, rs, mapDist, pos, ref))
 
-    mapFile.close()
+    # mapFile.close()
     logFile.close()

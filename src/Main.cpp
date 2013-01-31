@@ -1,7 +1,3 @@
-#include "Argument.h"
-#include "IO.h"
-#include "tabix.h"
-
 #include <cassert>
 #include <string>
 #include <set>
@@ -9,15 +5,13 @@
 #include <vector>
 #include <algorithm>
 
+#include "tabix.h"
+
+#include "Argument.h"
 #include "Utils.h"
 #include "VCFUtil.h"
-
-#include "MathVector.h"
-#include "MathMatrix.h"
-
-#include "IO.h"
-#include "Regex.h"
 #include "SimpleMatrix.h"
+#include "IO.h"
 
 /**
  * All indices are 0-based
@@ -41,14 +35,14 @@ int main(int argc, char** argv){
         ADD_PARAMETER_GROUP(pl, "Input/Output")
         ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
         ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
-        ADD_PARAMETER_GROUP(pl, "People Filter")
-        ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
-        ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
-        ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
-        ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
-        ADD_PARAMETER_GROUP(pl, "Site Filter")
-        ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-        ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
+        // ADD_PARAMETER_GROUP(pl, "People Filter")
+        // ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
+        // ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
+        // ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
+        // ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
+        // ADD_PARAMETER_GROUP(pl, "Site Filter")
+        // ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
+        // ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
         END_PARAMETER_LIST(pl)
         ;    
 
@@ -69,20 +63,20 @@ int main(int argc, char** argv){
     const char* fn = FLAG_inVcf.c_str(); 
     VCFInputFile vin(fn);
 
-    // set range filters here
-    // e.g.     
-    // vin.setRangeList("1:69500-69600");
-    vin.setRangeList(FLAG_rangeList.c_str());
-    vin.setRangeFile(FLAG_rangeFile.c_str());
+    // // set range filters here
+    // // e.g.     
+    // // vin.setRangeList("1:69500-69600");
+    // vin.setRangeList(FLAG_rangeList.c_str());
+    // vin.setRangeFile(FLAG_rangeFile.c_str());
 
-    // set people filters here
-    if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
-        vin.excludeAllPeople();
-        vin.includePeople(FLAG_peopleIncludeID.c_str());
-        vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
-    }
-    vin.excludePeople(FLAG_peopleExcludeID.c_str());
-    vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
+    // // set people filters here
+    // if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
+    //     vin.excludeAllPeople();
+    //     vin.includePeople(FLAG_peopleIncludeID.c_str());
+    //     vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
+    // }
+    // vin.excludePeople(FLAG_peopleExcludeID.c_str());
+    // vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
 
     // store intemediate results
     OrderedMap < std::string, int> markerIndex;
@@ -95,8 +89,8 @@ int main(int argc, char** argv){
     //   int ret = vin.updateId(FLAG_updateId.c_str());
     //   fprintf(stdout, "%d samples have updated id.\n", ret);
     // }
-    FILE* fMap = fopen( (FLAG_outPrefix + ".map").c_str(), "wt");
-
+    FILE* fSite = fopen( (FLAG_outPrefix + ".site").c_str(), "wt");
+    fprintf(fSite, "CHROM\tPOS\tID\tREF\tALT\n");
     std::string markerName;
     int lineNo = 0;
     // int nonVariantSite = 0;
@@ -130,7 +124,7 @@ int main(int argc, char** argv){
           fprintf(stderr, "Duplicated marker name [ %s ]\n", markerName.c_str());
           continue;
         }
-        fprintf(fMap, "%s\t%s\t%s\t%s\t%s\n", r.getChrom(), r.getPosStr(), markerName.c_str(), r.getRef(), r.getAlt());
+        fprintf(fSite, "%s\t%s\t%s\t%s\t%s\n", r.getChrom(), r.getPosStr(), markerName.c_str(), r.getRef(), r.getAlt());
 
         const int index = markerIndex.size();
         markerIndex[markerName] = index;
@@ -147,7 +141,7 @@ int main(int argc, char** argv){
           }
         }
     };
-    fclose(fMap);
+    fclose(fSite);
     
     // output geno file
     FILE* fGeno = fopen ( (FLAG_outPrefix + ".geno").c_str(), "wt");
