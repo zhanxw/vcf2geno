@@ -1,0 +1,43 @@
+
+@----------------------------------------------------------@
+|        PLINK!       |     v1.07      |   10/Aug/2009     |
+|----------------------------------------------------------|
+|  (C) 2009 Shaun Purcell, GNU General Public License, v2  |
+|----------------------------------------------------------|
+|  For documentation, citation & bug-report instructions:  |
+|        http://pngu.mgh.harvard.edu/purcell/plink/        |
+@----------------------------------------------------------@
+
+Web-based version check ( --noweb to skip )
+Recent cached web-check found... OK, v1.07 is current
+
+Writing this text to log file [ t1.log ]
+Analysis started: Wed Feb  8 17:41:07 2012
+
+Options in effect:
+	--file t1
+	--make-bed
+	--out t1
+
+3 (of 3) markers to be included from [ t1.map ]
+6 individuals read from [ t1.ped ] 
+3 individuals with nonmissing phenotypes
+Assuming a disease phenotype (1=unaff, 2=aff, 0=miss)
+Missing phenotype value is also -9
+3 cases, 0 controls and 3 missing
+6 males, 0 females, and 0 of unspecified sex
+Before frequency and genotyping pruning, there are 3 SNPs
+4 founders and 2 non-founders found
+Total genotyping rate in remaining individuals is 0.777778
+0 SNPs failed missingness test ( GENO > 1 )
+0 SNPs failed frequency test ( MAF < 0 )
+After frequency and genotyping pruning, there are 3 SNPs
+After filtering, 3 cases, 0 controls and 3 missing
+After filtering, 6 males, 0 females, and 0 of unspecified sex
+Writing pedigree information to [ t1.fam ] 
+Writing map (extended format) information to [ t1.bim ] 
+Writing genotype bitfile to [ t1.bed ] 
+Using (default) SNP-major mode
+
+Analysis finished: Wed Feb  8 17:41:07 2012
+
