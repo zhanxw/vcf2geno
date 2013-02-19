@@ -1,39 +1,80 @@
-LASER Software
-==============
+vcf2geno
+=========
 
-vcf2laser
----------
+Convert VCF files to genotype file and site file.
 
-Function:
-Convert VCF files to genotype file and map file.
+Input File
+----------
 
-Usage:
- vcf2laser --inVcf input.vcf --out prefix
+Vcf2geno takes VCF files. They can be in plain text or GZIP/BGZIP compressed formats.
 
-Location:
-executable/vcf2laser ;
-alternatively, under src/, use 'make' to build it from source.
+Outputs
+-------
+Vcf2geno generates two sets of first: prefix.geno and preifx.site where ''prefix'' is the given parameter to ''--out''.
 
-pileup2laser.py
----------------
+A .geno file is shown below:
 
-Function:
-Convert pileup results to seq file.
+    X1  X1  0   -9  0   0   0   2   2   2   2   2   2
+    X2  X2  -9  -9  0   0   0   2   2   2   2   2   2
+    X3  X3  0   -9  0   0   0   2   2   2   2   2   2
+    X4  X4  0   -9  0   0   0   2   2   2   2   2   2
+    X5  X5  0   -9  0   0   0   2   2   1   2   2   2
+    X6  X6  0   -9  0   0   0   2   2   2   2   2   -9
 
-Usage:
- python pileup2laser.py ...
+The first and second columns are sample IDs copied from the header of VCF files.
+From column 3 till the last the column, they are individual level genotype converted from VCF files.
 
-Location:
-script/pileup2laser.py
+A .site file is shwon below:
 
-calculateCoverage.py
---------------------
+    CHROM   POS ID  REF ALT
+    1   10  1:10    A   T
+    1   20  1:20    G   C
+    1   30  1:30    C   A
+    1   40  1:40    A   C
+    1   10000   1:10000 G   C
+    1   20000   1:20000 T   A
+    4   5000    4:5000  A   T
+    4   6000    4:6000  C   T
+    X   800 X:800   A   C
+    X   900 X:900   A   T
+    X   1000    X:1000  T   G
 
-Function:
-Calculate coverage statistics (per sample and per marker) from laser file
+The content of .site file begins with a header line, and thus the content part from the second line is chromosome, positions, reference alleles and alternative alleles.
 
-Usage:
- python calculateCoverage.py ....
+Options
+-------
 
-Location:
-script/calculateCoverage.py
+Vcf2geno provides samplexs selection options and range selection options.
+
+There are four options to include/exclude samples:
+
+    --peopleIncludeID, --peopleExcludeID: specify which samples are included/excluded in conversion, e.g. --peopleIncludeID X1,X2,X3 will convert only 3 people during conversion if input VCF file contains these three samples.
+
+    --peopleIncludeFile, --peopleExcludeFile: speicify a file to include/exclude samples. Each line of the file should be a sample ID.
+
+There are two options to specify regions. You can convert part of the VCF file using this option, however, your input file must be indexed by TABIX.
+
+--rangeList: this options enable you to speicify a range by hand. e.g. --rangeList 1:100-200. Note your chromosome name in the command line should be consistent to the content of the VCF file (e.g. both do not have 'chr' prefix).
+
+--rangeFile: this optinos speicify range by a given file. Each line of the file should specify a range, e.g. '1:100-200' or alternatively three columns '1 100 200'. 
+
+Example
+-------
+
+Under the "exampleVCF" folder, you can file example.vcf.gz. This is an indexed VCF file.
+Basica usage of extracting all samples across all regions:
+
+    ../vcf2geno --inVcf example.vcf.gz --out test
+
+Convert sample X1 from range 1:20-30:
+    ../vcf2geno --inVcf example.vcf.gz --rangeList 1:20-30 --peopleIncludeID X1 --out test
+
+Contact
+-------
+
+Questions or commments should be sent to Xiaowei Zhan
+([zhanxw@umich.edu](mailto:zhanxw@umich.edu "mailto:zhanxw@umich.edu"))
+or Goncalo Abecasis
+([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@umich.edu"))
+
+

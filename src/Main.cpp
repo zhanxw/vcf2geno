@@ -35,14 +35,14 @@ int main(int argc, char** argv){
         ADD_PARAMETER_GROUP(pl, "Input/Output")
         ADD_STRING_PARAMETER(pl, inVcf, "--inVcf", "input VCF File")
         ADD_STRING_PARAMETER(pl, outPrefix, "--out", "output prefix")
-        // ADD_PARAMETER_GROUP(pl, "People Filter")
-        // ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
-        // ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
-        // ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
-        // ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
-        // ADD_PARAMETER_GROUP(pl, "Site Filter")
-        // ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
-        // ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
+        ADD_PARAMETER_GROUP(pl, "People Filter")
+        ADD_STRING_PARAMETER(pl, peopleIncludeID, "--peopleIncludeID", "give IDs of people that will be included in study")
+        ADD_STRING_PARAMETER(pl, peopleIncludeFile, "--peopleIncludeFile", "from given file, set IDs of people that will be included in study")
+        ADD_STRING_PARAMETER(pl, peopleExcludeID, "--peopleExcludeID", "give IDs of people that will be included in study")
+        ADD_STRING_PARAMETER(pl, peopleExcludeFile, "--peopleExcludeFile", "from given file, set IDs of people that will be included in study")
+        ADD_PARAMETER_GROUP(pl, "Site Filter")
+        ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
+        ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
         END_PARAMETER_LIST(pl)
         ;    
 
@@ -63,20 +63,20 @@ int main(int argc, char** argv){
     const char* fn = FLAG_inVcf.c_str(); 
     VCFInputFile vin(fn);
 
-    // // set range filters here
-    // // e.g.     
-    // // vin.setRangeList("1:69500-69600");
-    // vin.setRangeList(FLAG_rangeList.c_str());
-    // vin.setRangeFile(FLAG_rangeFile.c_str());
+    // set range filters here
+    // e.g.     
+    // vin.setRangeList("1:69500-69600");
+    vin.setRangeList(FLAG_rangeList.c_str());
+    vin.setRangeFile(FLAG_rangeFile.c_str());
 
-    // // set people filters here
-    // if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
-    //     vin.excludeAllPeople();
-    //     vin.includePeople(FLAG_peopleIncludeID.c_str());
-    //     vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
-    // }
-    // vin.excludePeople(FLAG_peopleExcludeID.c_str());
-    // vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
+    // set people filters here
+    if (FLAG_peopleIncludeID.size() || FLAG_peopleIncludeFile.size()) {
+        vin.excludeAllPeople();
+        vin.includePeople(FLAG_peopleIncludeID.c_str());
+        vin.includePeopleFromFile(FLAG_peopleIncludeFile.c_str());
+    }
+    vin.excludePeople(FLAG_peopleExcludeID.c_str());
+    vin.excludePeopleFromFile(FLAG_peopleExcludeFile.c_str());
 
     // store intemediate results
     OrderedMap < std::string, int> markerIndex;
