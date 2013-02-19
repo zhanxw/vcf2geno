@@ -10,7 +10,7 @@ Vcf2geno takes VCF files. They can be in plain text or GZIP/BGZIP compressed for
 
 Outputs
 -------
-Vcf2geno generates two sets of first: prefix.geno and preifx.site where ''prefix'' is the given parameter to ''--out''.
+Vcf2geno generates two sets of files: prefix.geno and prefix.site where ''prefix'' is the given parameter to ''--out''.
 
 A .geno file is shown below:
 
@@ -24,7 +24,7 @@ A .geno file is shown below:
 The first and second columns are sample IDs copied from the header of VCF files.
 From column 3 till the last the column, they are individual level genotype converted from VCF files.
 
-A .site file is shwon below:
+A .site file is shown below:
 
     CHROM   POS ID  REF ALT
     1   10  1:10    A   T
@@ -44,35 +44,42 @@ The content of .site file begins with a header line, and thus the content part f
 Options
 -------
 
-Vcf2geno provides samplexs selection options and range selection options.
+Vcf2geno provides sample selection options and range selection options.
 
 There are four options to include/exclude samples:
 
-    --peopleIncludeID, --peopleExcludeID: specify which samples are included/excluded in conversion, e.g. --peopleIncludeID X1,X2,X3 will convert only 3 people during conversion if input VCF file contains these three samples.
+    --peopleIncludeID, --peopleExcludeID: specify which samples are included/excluded in conversion 
 
-    --peopleIncludeFile, --peopleExcludeFile: speicify a file to include/exclude samples. Each line of the file should be a sample ID.
+e.g. --peopleIncludeID X1,X2,X3 will convert only 3 people during conversion if input VCF file contains these three samples.
+
+    --peopleIncludeFile, --peopleExcludeFile: specify a file to include/exclude samples. 
+    
+Each line of the file should be a sample ID.
 
 There are two options to specify regions. You can convert part of the VCF file using this option, however, your input file must be indexed by TABIX.
 
---rangeList: this options enable you to speicify a range by hand. e.g. --rangeList 1:100-200. Note your chromosome name in the command line should be consistent to the content of the VCF file (e.g. both do not have 'chr' prefix).
+    --rangeList: this options enable you to specify a range by hand. 
+e.g. --rangeList 1:100-200. Note your chromosome name in the command line should be consistent to the content of the VCF file (e.g. both do not have 'chr' prefix).
 
---rangeFile: this optinos speicify range by a given file. Each line of the file should specify a range, e.g. '1:100-200' or alternatively three columns '1 100 200'. 
+    --rangeFile: this option specifies range using an external file. 
+Each line of the file should specify a range, e.g. '1:100-200', or alternatively three columns '1 100 200'. 
 
 Example
 -------
 
 Under the "exampleVCF" folder, you can file example.vcf.gz. This is an indexed VCF file.
-Basica usage of extracting all samples across all regions:
+Basic usage of extracting all samples across all regions:
 
     ../vcf2geno --inVcf example.vcf.gz --out test
 
 Convert sample X1 from range 1:20-30:
+
     ../vcf2geno --inVcf example.vcf.gz --rangeList 1:20-30 --peopleIncludeID X1 --out test
 
 Contact
 -------
 
-Questions or commments should be sent to Xiaowei Zhan
+Questions or comments should be sent to Xiaowei Zhan
 ([zhanxw@umich.edu](mailto:zhanxw@umich.edu "mailto:zhanxw@umich.edu"))
 or Goncalo Abecasis
 ([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@umich.edu"))
