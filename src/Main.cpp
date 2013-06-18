@@ -26,6 +26,35 @@ void appendGeno(SimpleMatrix* geno, const int peopleIndex, const int genoIndex, 
   (*geno)[peopleIndex][genoIndex] = g;
 }
 
+typedef std::map<std::string, std::vector<std::string> > IDUpdater;
+int loadUpdateIDFile(const std::string& fn, IDUpdater* d) {
+  if (fn.empty()) return 0;
+  LineReader lr(fn);
+  std::vector<std::string> fd;
+  int lineNo = 0;
+  IDUpdater& data = *d;
+  while (lr.readLineBySep(&fd, " \t")){
+    ++lineNo;
+    if (fd.size() == 0) continue;
+    if (fd.size() < 3) {
+      fprintf(stderr,
+              "Line %d should have at least 3 columns, %d columns detected. Skipped...\n",
+              lineNo, (int)fd.size());
+      continue;
+    }
+    
+    if (data.count(fd[0])) {
+      fprintf(stderr, "Line %d has duplicated id [ %s ]. Skipped...\n",
+              lineNo, fd[0].c_str());
+      continue;
+    }
+    data[fd[0]].push_back(fd[1]);
+    data[fd[0]].push_back(fd[2]);
+  }
+  fprintf(stderr, "Loaded %d entries from %s.\n", (int)data.size(), fn.c_str());
+  return 0;
+}
+
 int main(int argc, char** argv){
     time_t currentTime = time(0);
     fprintf(stderr, "Analysis started at: %s", ctime(&currentTime));
@@ -43,6 +72,8 @@ int main(int argc, char** argv){
         ADD_PARAMETER_GROUP(pl, "Site Filter")
         ADD_STRING_PARAMETER(pl, rangeList, "--rangeList", "Specify some ranges to use, please use chr:begin-end format.")
         ADD_STRING_PARAMETER(pl, rangeFile, "--rangeFile", "Specify the file containing ranges, please use chr:begin-end format.")
+        ADD_PARAMETER_GROUP(pl, "Auxilary Function")
+        ADD_STRING_PARAMETER(pl, updateID, "--updateID", "Specify a three column file where the first column is the IDs in VCF input file, and the second, third columns are family and individual IDs in the output files.")
         END_PARAMETER_LIST(pl)
         ;    
 
@@ -60,6 +91,10 @@ int main(int argc, char** argv){
 
     REQUIRE_STRING_PARAMETER(FLAG_inVcf, "Please provide input file using: --inVcf");
 
+    // load id updater file
+    IDUpdater idUpdater;
+    loadUpdateIDFile(FLAG_updateID, &idUpdater);
+    
     const char* fn = FLAG_inVcf.c_str(); 
     VCFInputFile vin(fn);
 
@@ -148,7 +183,20 @@ int main(int argc, char** argv){
     std::vector<std::string> names;
     vin.getVCFHeader()->getPeopleName(&names);
     for (int i = 0; i < names.size(); ++i) {
-      fprintf(fGeno, "%s\t%s", names[i].c_str(), names[i].c_str());
+      // update id
+      if (idUpdater.empty()) {
+        fprintf(fGeno, "%s\t%s", names[i].c_str(), names[i].c_str());
+      } else {
+        if (idUpdater.count(names[i]) == 0) {
+          fprintf(stderr, "VCF ID [ %s ] not found in idUpdater file\n", names[i].c_str());
+          fprintf(fGeno, "%s\t%s", names[i].c_str(), names[i].c_str());
+        } else {
+          fprintf(fGeno, "%s\t%s",
+                  idUpdater[names[i]][0].c_str(),
+                  idUpdater[names[i]][1].c_str());
+        }
+      }
+      // output genotype
       for (int j = 0; j < geno.ncol(); ++j) {
         fprintf(fGeno, "\t%d", (int) geno[i][j]);
       }

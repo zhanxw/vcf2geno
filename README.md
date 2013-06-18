@@ -64,6 +64,10 @@ e.g. --rangeList 1:100-200. Note your chromosome name in the command line should
     --rangeFile: this option specifies range using an external file. 
 Each line of the file should specify a range, e.g. '1:100-200', or alternatively three columns '1 100 200'. 
 
+    --updateID: this option specifies an external file to update the sample ID in the input VCF file.
+This file should have three columns. The first columns are sample ID used in the input VCF file. The second and third columns are the family ID and individual ID. 
+vcf2geno will update the IDs in the VCF to the family ID and individual ID in the outputted genotype file.
+ 
 Example
 -------
 
@@ -76,10 +80,18 @@ Convert sample X1 from range 1:20-30:
 
     ../vcf2geno --inVcf example.vcf.gz --rangeList 1:20-30 --peopleIncludeID X1 --out test
 
+Extract all samples and update sample IDs using a separate file ''test.updateId'':
+
+    ../vcf2geno --inVcf example.vcf.gz --out test --updateID test.updateId 
+
+ 
 Contact
 -------
 
 Questions or comments should be sent to Xiaowei Zhan
+([zhanxw@umich.edu](mailto:zhanxw@umich.edu "mailto:zhanxw@umich.edu"))
+or Chaolong Wang
+([chaolong@umich.edu](mailto:chaolong@umich.edu "mailto:chaolong@umich.edu"))
 ([zhanxw@umich.edu](mailto:zhanxw@umich.edu "mailto:zhanxw@umich.edu"))
 or Goncalo Abecasis
 ([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@umich.edu"))
