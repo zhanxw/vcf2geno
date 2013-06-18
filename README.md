@@ -87,12 +87,10 @@ Extract all samples and update sample IDs using a separate file ''test.updateId'
  
 Contact
 -------
-
 Questions or comments should be sent to Xiaowei Zhan
 ([zhanxw@umich.edu](mailto:zhanxw@umich.edu "mailto:zhanxw@umich.edu"))
 or Chaolong Wang
 ([chaolong@umich.edu](mailto:chaolong@umich.edu "mailto:chaolong@umich.edu"))
-([zhanxw@umich.edu](mailto:zhanxw@umich.edu "mailto:zhanxw@umich.edu"))
 or Goncalo Abecasis
 ([goncalo@umich.edu](mailto:goncalo@umich.edu "mailto:goncalo@umich.edu"))
 
